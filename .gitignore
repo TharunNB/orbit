@@ -1,0 +1,16 @@
+# models
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# build
+dist/
+build/
+
+# env
+.env
+
+# mac/linux/windows junk
+.DS_Store
+Thumbs.db
