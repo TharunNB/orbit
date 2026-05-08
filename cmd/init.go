@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"fmt"
-	"orbit/internal/downloader"
+	"orbit/internal/tui"
 
 	"github.com/spf13/cobra"
 )
@@ -14,18 +14,11 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize your local llm",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		model := args[0]
+	Run: func(cmd *cobra.Command, args []string) {
 
-		url := getModelURl(model)
-
-		fmt.Printf("Downloading %s...\n", model)
-
-		return downloader.DownloadFile(
-			url,
-			"./models/"+model+".gguf",
-		)
+		selected := tui.Start()
+		fmt.Println("\nSelected model:")
+		fmt.Println(selected.Name)
 	},
 }
 
