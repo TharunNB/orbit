@@ -4,8 +4,6 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,18 +21,18 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			log.Fatal("Please provide a pet")
-		}
-		if args[0] == "dog" {
-			fmt.Println("woooooof! woooof!")
-		} else if args[0] == "cat" {
-			fmt.Println("Meow! Meow!")
-		} else {
-			fmt.Println("sorry your pet is currently not supported")
-		}
-	},
+	// Run: func(cmd *cobra.Command, args []string) {
+	// 	if len(args) == 0 {
+	// 		log.Fatal("Please provide a pet")
+	// 	}
+	// 	if args[0] == "dog" {
+	// 		fmt.Println("woooooof! woooof!")
+	// 	} else if args[0] == "cat" {
+	// 		fmt.Println("Meow! Meow!")
+	// 	} else {
+	// 		fmt.Println("sorry your pet is currently not supported")
+	// 	}
+	// },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -6,19 +6,30 @@ package cmd
 import (
 	"fmt"
 	"orbit/internal/tui"
+	"orbit/internal/workspace"
 
 	"github.com/spf13/cobra"
 )
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize your local llm",
+	Use:   "init [agent-name]",
+	Short: "Initialize a new Orbit agent workspace",
 	Run: func(cmd *cobra.Command, args []string) {
 
+		agentName := args[0]
+
+		//Select the model for the current agent
 		selected := tui.Start()
-		fmt.Println("\nSelected model:")
-		fmt.Println(selected.Name)
+
+		err := workspace.Initialize(agentName, selected.Name)
+		if err != nil {
+			fmt.Printf("Error inititalizing agent: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Succesfully initialized agent '%s' with model '%s' \n", agentName, selected.Name)
+
 	},
 }
 
