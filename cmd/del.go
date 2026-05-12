@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var force bool
+
 // delCmd represents the del command
 var delCmd = &cobra.Command{
 	Use:   "del [agent-name]",
@@ -18,13 +20,15 @@ var delCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		agentName := args[0]
 
-		fmt.Printf("Are sure you want to delete '%s' and its workspace?")
-		var confirm string
-		fmt.Scanln(&confirm)
+		if !force {
+			fmt.Printf("Are sure you want to delete '%s' and its workspace?", agentName)
+			var confirm string
+			fmt.Scanln(&confirm)
 
-		if confirm != "y" && confirm != "Y" {
-			fmt.Println("Cancelled Deletion.")
-			return
+			if confirm != "y" && confirm != "Y" {
+				fmt.Println("Cancelled Deletion.")
+				return
+			}
 		}
 
 		err := os.RemoveAll(agentName)
@@ -38,6 +42,8 @@ var delCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(delCmd)
+
+	delCmd.Flags().BoolVarP(&force, "force", "f", false, "Force delete without confirmation")
 
 	// Here you will define your flags and configuration settings.
 
