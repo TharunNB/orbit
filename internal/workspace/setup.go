@@ -1,19 +1,12 @@
 package workspace
 
 import (
+	"orbit/internal/models"
 	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
-
-type OrbitConfig struct {
-	Name  string `yaml:"name"`
-	Model struct {
-		Provider string `yaml:"provider"`
-		Name     string `yaml:"name"`
-	} `yaml:"model"`
-}
 
 func Initialize(agentName string, modelName string) error {
 	subDirs := []string{"workspace", "logs", "memory"}
@@ -24,9 +17,10 @@ func Initialize(agentName string, modelName string) error {
 		}
 	}
 
-	cfg := OrbitConfig{
+	cfg := models.OrbitConfig{
 		Name: agentName,
 	}
+
 	cfg.Model.Provider = "ollama"
 	cfg.Model.Name = modelName
 
