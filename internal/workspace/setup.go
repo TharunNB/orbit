@@ -33,7 +33,7 @@ func Initialize(agentName string, modelName string) error {
 		return fmt.Errorf("failed to create .orbit directory: %w", err)
 	}
 
-	//orbit.yaml config 
+	//orbit.yaml config
 	cfg := models.OrbitConfig{
 		Name: agentName,
 	}
@@ -51,3 +51,4 @@ func Initialize(agentName string, modelName string) error {
 	}
 
 	return nil
+}
