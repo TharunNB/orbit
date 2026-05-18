@@ -19,7 +19,12 @@ func NewRegistry() *Registry {
 func (r *Registry) Update(meta *models.RuntimeMetaData) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.Agents[meta.Name] = meta
+
+	if meta.Status == models.StatusStopped || meta.Status == models.StatusFailed {
+		delete(r.Agents, meta.Name)
+	} else {
+		r.Agents[meta.Name] = meta
+	}
 }
 
 func (r *Registry) Get(name string) (*models.RuntimeMetaData, bool) {
@@ -38,4 +43,10 @@ func (r *Registry) GetAll() []*models.RuntimeMetaData {
 		list = append(list, v)
 	}
 	return list
+}
+
+func (r *Registry) Delete(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.Agents, name)
 }

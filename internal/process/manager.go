@@ -2,7 +2,9 @@ package process
 
 import (
 	"orbit/internal/models"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -19,30 +21,59 @@ func NewManager(updater StatusUpdater) *Manager {
 }
 
 func (m *Manager) SpawnAgent(name string, workspacePath string) error {
-	cmd := exec.Command("orbit", "runtime", "execute", "--name", name)
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = "orbit"
+	}
+	cmd := exec.Command(execPath, "runtime", "execute", "--name", name)
 	cmd.Dir = workspacePath
 
-	if err := cmd.Start(); err != nil {
+	// Ensure the logs subdirectory exists
+	logDir := filepath.Join(workspacePath, "logs")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return err
 	}
+
+	logFilePath := filepath.Join(logDir, "agent.log")
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+
+	if err := cmd.Start(); err != nil {
+		logFile.Close()
+		return err
+	}
+	// Close parent's write handle so we don't leak open file descriptors/handles
+	logFile.Close()
 
 	meta := &models.RuntimeMetaData{
 		PID:       cmd.Process.Pid,
 		Name:      name,
-		Status:    "Running",
+		Status:    models.StatusRunning,
 		StartedAt: time.Now(),
 	}
 	m.Updater.Update(meta)
 
 	go func() {
 		err := cmd.Wait()
-		status := "Stopped"
+		status := models.StatusStopped
 		if err != nil {
-			status = "Crashed"
+			status = models.StatusFailed
 		}
 		meta.Status = status
 		m.Updater.Update(meta)
 	}()
 
 	return nil
+}
+
+func (m *Manager) StopAgent(pid int) error {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	return StopProcess(proc)
 }

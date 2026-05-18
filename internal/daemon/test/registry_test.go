@@ -49,4 +49,40 @@ func TestRegistry(t *testing.T) {
 			t.Errorf("expected ok=false for non-existent agent")
 		}
 	})
+
+	t.Run("DeleteOnStopOrFail", func(t *testing.T) {
+		reg := NewRegistry()
+		meta := &models.RuntimeMetaData{
+			PID:       1234,
+			Name:      "test-agent",
+			Status:    models.StatusRunning,
+			StartedAt: time.Now(),
+		}
+
+		reg.Update(meta)
+
+		// Verify it is there
+		if _, ok := reg.Get("test-agent"); !ok {
+			t.Errorf("expected to find agent")
+		}
+
+		// Update to Stopped
+		meta.Status = models.StatusStopped
+		reg.Update(meta)
+
+		// Verify it was deleted
+		if _, ok := reg.Get("test-agent"); ok {
+			t.Errorf("expected agent to be deleted after stopped")
+		}
+
+		// Re-add and check Failed
+		meta.Status = models.StatusRunning
+		reg.Update(meta)
+		meta.Status = models.StatusFailed
+		reg.Update(meta)
+
+		if _, ok := reg.Get("test-agent"); ok {
+			t.Errorf("expected agent to be deleted after failed")
+		}
+	})
 }

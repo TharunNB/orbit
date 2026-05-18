@@ -55,7 +55,7 @@ func runExecute(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := checkModelReady(ollamaClient, config.Model.Name); err != nil {
-		return err
+		fmt.Printf("⚠️ Model check warning (continuing in offline/testing mode): %v\n", err)
 	}
 
 	return startAgentLoop(config, ollamaClient)

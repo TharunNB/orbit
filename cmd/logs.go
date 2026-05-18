@@ -1,40 +1,89 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 // logsCmd represents the logs command
 var logsCmd = &cobra.Command{
-	Use:   "logs",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "logs [agent-name]",
+	Short: "View logs for an agent runtime",
+	Long:  `View the execution logs for a specified agent runtime. Use the -f or --follow flag to stream logs in real-time.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("logs called")
+		agentName := args[0]
+		follow, _ := cmd.Flags().GetBool("follow")
+
+		// Resolve workspace path mismatch
+		workspacePath := "./agents/" + agentName
+		if _, err := os.Stat(workspacePath); os.IsNotExist(err) {
+			workspacePath = "./" + agentName
+		}
+
+		logFilePath := filepath.Join(workspacePath, "logs", "agent.log")
+
+		// Check if log file exists
+		if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
+			fmt.Printf("❌ No logs found for agent '%s' (looked at: %s)\n", agentName, logFilePath)
+			fmt.Println("Tip: Start the agent first with 'orbit run <agent-name>'.")
+			return
+		}
+
+		fmt.Printf("\033[90m🛰️  Streaming logs for agent '%s' (press Ctrl+C to exit)...\033[0m\n\n", agentName)
+
+		if follow {
+			err := tailFile(logFilePath)
+			if err != nil {
+				log.Fatalf("❌ Error streaming logs: %v", err)
+			}
+		} else {
+			content, err := os.ReadFile(logFilePath)
+			if err != nil {
+				log.Fatalf("❌ Failed to read log file: %v", err)
+			}
+			fmt.Print(string(content))
+		}
 	},
+}
+
+func tailFile(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Print existing content first
+	_, err = io.Copy(os.Stdout, file)
+	if err != nil {
+		return err
+	}
+
+	// Tail new content
+	buffer := make([]byte, 2048)
+	for {
+		n, err := file.Read(buffer)
+		if n > 0 {
+			os.Stdout.Write(buffer[:n])
+		}
+		if err == io.EOF {
+			time.Sleep(150 * time.Millisecond)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(logsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// logsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// logsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	logsCmd.Flags().BoolP("follow", "f", false, "Stream log output in real-time")
 }

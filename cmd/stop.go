@@ -1,40 +1,42 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cobra"
 )
 
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "stop [agent-name]",
+	Short: "Stop an active agent runtime",
+	Long:  `Send a request to the Orbit daemon to gracefully stop the background runtime process of a specified agent.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stop called")
+		agentName := args[0]
+		daemonPort := "54321"
+		daemonURL := fmt.Sprintf("http://localhost:%s/stop?name=%s", daemonPort, agentName)
+
+		fmt.Printf("Stopping agent '%s'...\n", agentName)
+		resp, err := http.Post(daemonURL, "application/json", nil)
+		if err != nil {
+			fmt.Println("❌ Orbit Daemon is not running.")
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			fmt.Printf("✅ Success: Agent '%s' stopped successfully.\n", agentName)
+		} else if resp.StatusCode == http.StatusNotFound {
+			fmt.Printf("❌ Error: Agent '%s' is not active or running.\n", agentName)
+			fmt.Println("Tip: Use 'orbit ps' to check running agents.")
+		} else {
+			fmt.Printf("❌ Error: Failed to stop agent '%s'. Daemon returned status: %d\n", agentName, resp.StatusCode)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// stopCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// stopCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

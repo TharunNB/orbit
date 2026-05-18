@@ -1,11 +1,11 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"orbit/internal/models"
 
 	"github.com/spf13/cobra"
 )
@@ -13,28 +13,49 @@ import (
 // psCmd represents the ps command
 var psCmd = &cobra.Command{
 	Use:   "ps",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "List active agent runtimes",
+	Long:  `Display a table of all active background Orbit agent runtimes with their PIDs, status, and start times.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ps called")
+		daemonPort := "54321"
+		daemonURL := fmt.Sprintf("http://localhost:%s/status", daemonPort)
+
+		resp, err := http.Get(daemonURL)
+		if err != nil {
+			fmt.Println("❌ Orbit Daemon is not running.")
+			fmt.Println("Tip: Start an agent with 'orbit run <agent-name>' to auto-start the daemon.")
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("❌ Daemon returned an unexpected status: %d\n", resp.StatusCode)
+			return
+		}
+
+		var list []*models.RuntimeMetaData
+		if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+			log.Fatalf("Failed to parse status response: %v", err)
+		}
+
+		if len(list) == 0 {
+			fmt.Println("ℹ️  No active agent runtimes are currently running.")
+			return
+		}
+
+		// Print premium-styled header and table
+		fmt.Println()
+		fmt.Printf("🛰️  \033[1m%-25s %-10s %-12s %-20s\033[0m\n", "AGENT NAME", "PID", "STATUS", "STARTED AT")
+		fmt.Println("\033[90m----------------------------------------------------------------------\033[0m")
+		for _, item := range list {
+			startedStr := item.StartedAt.Format("2006-01-02 15:04:05")
+			// Add nice green color for running status
+			statusStr := fmt.Sprintf("\033[32m%s\033[0m", item.Status)
+			fmt.Printf("   %-25s %-10d %-12s %-20s\n", item.Name, item.PID, statusStr, startedStr)
+		}
+		fmt.Println()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(psCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// psCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// psCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
